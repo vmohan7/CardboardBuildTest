@@ -34,34 +34,19 @@ public class PostBuildProcessor : MonoBehaviour
 
     // a normal post process method which is executed by Unity
     [PostProcessBuild]
-    public static void OnPostprocessBuild(BuildTarget buildTarget, string path)
+    public static void OnPostProcessBuild(BuildTarget platform, string projectPath)
     {
-        #if UNITY_CLOUD_BUILD
-
-                Debug.Log("OnPostprocessBuildiOS");
-                string projPath = path + "/Unity-iPhone.xcodeproj/project.pbxproj";
-
-                PBXProject proj = new PBXProject();
-                proj.ReadFromString(File.ReadAllText(projPath));
-
-                string target = proj.TargetGuidByName("Unity-iPhone");
-
-                // Set a custom link flag
-                proj.AddBuildProperty(target, "OTHER_LDFLAGS", "-all_load");
-                proj.AddBuildProperty(target, "OTHER_LDFLAGS", "-ObjC");
-
-                // add frameworks
-                proj.AddFrameworkToProject(target, "CoreTelephony.framework", true);
-                proj.AddFrameworkToProject(target, "EventKit.framework", true);
-                proj.AddFrameworkToProject(target, "EventKitUI.framework", true);
-                proj.AddFrameworkToProject(target, "iAd.framework", true);
-                proj.AddFrameworkToProject(target, "MessageUI.framework", true);
-                proj.AddFrameworkToProject(target, "StoreKit.framework", true);
-                proj.AddFrameworkToProject(target, "Security.framework", true);
-                proj.AddFrameworkToProject(target, "GameKit.framework", true);
-
-                File.WriteAllText(projPath, proj.WriteToString());
-
-        #endif
+        if (platform != BuildTarget.iOS)
+        {
+            return;
+        }
+        string pbxFile = PBXProject.GetPBXProjectPath(projectPath);
+        PBXProject pbxProject = new PBXProject();
+        pbxProject.ReadFromFile(pbxFile);
+        string target = pbxProject.TargetGuidByName(PBXProject.GetUnityTargetName());
+        pbxProject.AddFrameworkToProject(target, "Security.framework", false);
+        pbxProject.AddFrameworkToProject(target, "GLKit.framework", false);
+        pbxProject.AddBuildProperty(target, "OTHER_LDFLAGS", "-ObjC");
+        pbxProject.WriteToFile(pbxFile);
     }
 }
